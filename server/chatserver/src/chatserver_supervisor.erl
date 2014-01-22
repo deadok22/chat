@@ -60,7 +60,11 @@ init([]) ->
   MaxRestarts = 1000,
   MaxSecondsBetweenRestarts = 3600,
   SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-  Children = [client_registry_spec() | acceptors_specs()],
+  Children = [
+    messages_server_spec(),
+    client_registry_spec() |
+    acceptors_specs()
+  ],
   {ok, {SupFlags, Children}}.
 
 %%%===================================================================
@@ -96,3 +100,23 @@ client_registry_spec() ->
     Shutdown,
     Type,
     [chatserver_client_registry]}.
+
+messages_server_spec() ->
+  Restart = permanent,
+  Shutdown = 2000,
+  Type = worker,
+  {"messages",
+    {chatserver_messages, start_link, [message_history_size()]},
+    Restart,
+    Shutdown,
+    Type,
+    [chatserver_messages]}.
+
+message_history_size() ->
+  case application:get_env(message_history_size) of
+    undefined ->
+      throw("Message history size is not specified");
+    HistorySize ->
+      HistorySize
+  end.
+
