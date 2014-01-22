@@ -60,7 +60,7 @@ init([]) ->
   MaxRestarts = 1000,
   MaxSecondsBetweenRestarts = 3600,
   SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-  Children = acceptors_specs(),
+  Children = [client_registry_spec() | acceptors_specs()],
   {ok, {SupFlags, Children}}.
 
 %%%===================================================================
@@ -85,3 +85,14 @@ acceptors_count() ->
       throw("Acceptors count is not specified");
     AcceptorsCount -> AcceptorsCount
   end.
+
+client_registry_spec() ->
+  Restart = permanent,
+  Shutdown = 2000,
+  Type = worker,
+  {"client_registry",
+    {chatserver_client_registry, start_link, []},
+    Restart,
+    Shutdown,
+    Type,
+    [chatserver_client_registry]}.
