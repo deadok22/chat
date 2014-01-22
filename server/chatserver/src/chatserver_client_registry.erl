@@ -85,6 +85,8 @@ handle_call({register_client, Client}, _From, #state{clients = Clients} = State)
       io:format("A client logged in: ~s~n", [Client]),
       {reply, registered, State#state{clients = sets:add_element(Client, Clients)}}
   end;
+handle_call(get, _From, #state{clients = Clients} = State) ->
+  {reply, sets:to_list(Clients), State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
