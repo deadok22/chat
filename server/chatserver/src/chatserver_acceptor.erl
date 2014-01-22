@@ -163,5 +163,11 @@ server_socket_opts() ->
   ].
 
 accept_client(ClientSocket) ->
-  %%TODO handle connected client
+  Pid = spawn(chatserver_client_worker, run, []),
+  case gen_tcp:controlling_process(ClientSocket, Pid) of
+    {error, Reason} ->
+      throw({"gen_tcp:controlling_process failed", Reason});
+    ok -> ok
+  end,
+  Pid ! {client_socket, ClientSocket},
   ok.
