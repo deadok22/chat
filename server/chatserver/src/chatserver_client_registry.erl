@@ -83,6 +83,12 @@ handle_call({unregister_client, Pid}, _From, State) ->
   unregister_client(Pid, State);
 handle_call(get, _From, #state{clients = Clients} = State) ->
   {reply, sets:to_list(Clients), State};
+handle_call({is_logged_in, Pid}, _From, #state{pid_to_client_map = PidsToClients} = State) ->
+  Reply = case proplists:get_value(Pid, PidsToClients, not_logged_in) of
+    not_logged_in -> false;
+    Name -> {true, Name}
+  end,
+  {reply, Reply, State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 

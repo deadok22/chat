@@ -116,8 +116,8 @@ handle_info(Unexpected, State) ->
 %%--------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
     State :: #state{}) -> term()).
-terminate(_Reason, #state{socket = Socket} = State) ->
-  %%TODO notify about client disconnection, logout.
+terminate(_Reason, #state{socket = Socket}) ->
+  gen_server:call(chatserver_client_registry, {unregister_client, self()}),
   gen_tcp:close(Socket),
   ok.
 
@@ -138,7 +138,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-packet_received(Packet, #state{socket = Socket} = State) ->
+packet_received(Packet, State) ->
   case chatserver_protocol:deserialize(Packet) of
     {Command, Module} ->
       execute_command(Command, Module, State);
