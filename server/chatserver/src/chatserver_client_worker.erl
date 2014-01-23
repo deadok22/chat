@@ -4,72 +4,168 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created : 22. Jan 2014 7:38 PM
+%%% Created : 22. Jan 2014 9:00 PM
 %%%-------------------------------------------------------------------
 -module(chatserver_client_worker).
 -author("deadok22").
 
-%% API
--export([run/0]).
+-behaviour(gen_server).
 
-run() ->
-  Socket = get_client_socket(),
-  worker_loop(Socket).
+%% gen_server callbacks
+-export([init/1,
+  handle_call/3,
+  handle_cast/2,
+  handle_info/2,
+  terminate/2,
+  code_change/3]).
 
-worker_loop(Socket) ->
-  receive
-    {tcp, Socket, Package} ->
-      packet_received(Socket, Package);
-    {tcp_closed, Socket} ->
-      %%TODO notify about client's disconnection
-      stop_worker(Socket, ok);
-    Unexpected ->
-      unexpected_message(Unexpected)
-  end,
-  worker_loop(Socket).
+-define(SERVER, ?MODULE).
 
-packet_received(Socket, Packet) ->
+-record(state, {socket :: gen_tcp:socket()}).
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+%%%===================================================================
+%%% gen_server callbacks
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Initializes the server
+%%
+%% @spec init(Args) -> {ok, State} |
+%%                     {ok, State, Timeout} |
+%%                     ignore |
+%%                     {stop, Reason}
+%% @end
+%%--------------------------------------------------------------------
+-spec(init(Args :: term()) ->
+  {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
+  {stop, Reason :: term()} | ignore).
+init([Socket]) ->
+  {ok, #state{socket = Socket}}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handling call messages
+%%
+%% @end
+%%--------------------------------------------------------------------
+-spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
+    State :: #state{}) ->
+  {reply, Reply :: term(), NewState :: #state{}} |
+  {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate} |
+  {noreply, NewState :: #state{}} |
+  {noreply, NewState :: #state{}, timeout() | hibernate} |
+  {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
+  {stop, Reason :: term(), NewState :: #state{}}).
+handle_call(Unexpected, _From, State) ->
+  {stop, {unexpected_call, Unexpected}, State}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handling cast messages
+%%
+%% @end
+%%--------------------------------------------------------------------
+-spec(handle_cast(Request :: term(), State :: #state{}) ->
+  {noreply, NewState :: #state{}} |
+  {noreply, NewState :: #state{}, timeout() | hibernate} |
+  {stop, Reason :: term(), NewState :: #state{}}).
+handle_cast(init, #state{socket = Socket} = State) ->
+  set_opts(Socket),
+  {noreply, State};
+handle_cast(Unexpected, State) ->
+  {stop, {unexpected_cast, Unexpected}, State}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handling all non call/cast messages
+%%
+%% @spec handle_info(Info, State) -> {noreply, State} |
+%%                                   {noreply, State, Timeout} |
+%%                                   {stop, Reason, State}
+%% @end
+%%--------------------------------------------------------------------
+-spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
+  {noreply, NewState :: #state{}} |
+  {noreply, NewState :: #state{}, timeout() | hibernate} |
+  {stop, Reason :: term(), NewState :: #state{}}).
+handle_info({tcp, _Socket, Packet}, State) ->
+  packet_received(Packet, State);
+handle_info({tcp_closed, _Socket}, State) ->
+  {stop, tcp_closed, State};
+handle_info(Unexpected, State) ->
+  {stop, {unexpected_info, Unexpected}, State}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% This function is called by a gen_server when it is about to
+%% terminate. It should be the opposite of Module:init/1 and do any
+%% necessary cleaning up. When it returns, the gen_server terminates
+%% with Reason. The return value is ignored.
+%%
+%% @spec terminate(Reason, State) -> void()
+%% @end
+%%--------------------------------------------------------------------
+-spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
+    State :: #state{}) -> term()).
+terminate(_Reason, #state{socket = Socket} = State) ->
+  %%TODO notify about client disconnection, logout.
+  gen_tcp:close(Socket),
+  ok.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Convert process state when code is changed
+%%
+%% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
+%% @end
+%%--------------------------------------------------------------------
+-spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
+    Extra :: term()) ->
+  {ok, NewState :: #state{}} | {error, Reason :: term()}).
+code_change(_OldVsn, State, _Extra) ->
+  {ok, State}.
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+packet_received(Packet, #state{socket = Socket} = State) ->
   case chatserver_protocol:deserialize(Packet) of
     {Command, Module} ->
       Response = Module:execute_command(Command),
-      send_response(Socket, Response);
-    bad_package ->
-      stop_worker(Socket, bad_package)
+      case send_response(Socket, Response) of
+        failed -> {stop, send_failed, State};
+        ok -> {noreply, State}
+      end;
+    bad_packet ->
+      {stop, bad_packet, State}
   end.
 
 send_response(Socket, Response) ->
   case chatserver_protocol:serialize(Response) of
-    bad_response ->
-      stop_worker(Socket, bad_response);
+    bad_response -> failed;
     ResponsePacket ->
-      gen_tcp:send(Socket, ResponsePacket)
-  end.
-
-
-get_client_socket() ->
-  receive
-    {client_socket, Socket} ->
-      set_opts(Socket);
-    Unexpected ->
-      unexpected_message(Unexpected)
+      gen_tcp:send(Socket, ResponsePacket),
+      ok
   end.
 
 set_opts(Socket) ->
-  %% TODO configure packaging
-  case inet:setopts(Socket, [{active, true}]) of
+  Opts = [
+    {active, true},
+    {packet, 4}
+  ],
+  case inet:setopts(Socket, Opts) of
     {error, What} ->
       throw({"inet:setopts failed", What});
     ok -> ok
   end.
-
-unexpected_message(Message) ->
-  throw({"Unexpected message received", Message}).
-
-stop_worker(Socket, What) ->
-  gen_tcp:close(Socket),
-  do_stop(What).
-
-do_stop(ok) ->
-  exit(self(), ok);
-do_stop(What) ->
-  throw(What).
