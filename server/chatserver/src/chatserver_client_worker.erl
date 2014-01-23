@@ -141,7 +141,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 packet_received(Packet, State) ->
-  io:format("Got a packet from ~p~n", [State#state.socket]),
   case chatserver_protocol:deserialize(Packet) of
     {Command, Module} ->
       execute_command(Command, Module, State);

@@ -85,7 +85,7 @@ init([MessageHistorySize]) ->
   {stop, Reason :: term(), NewState :: #state{}}).
 
 handle_call({post_message, MessagePrototype}, _From, State) ->
-  NewMessage = create_message(MessagePrototype),
+  NewMessage = MessagePrototype#chat_message{id = State#state.messages_count, timestamp = get_timestamp()},
   NewState = State#state{
     messages = [NewMessage | State#state.messages],
     messages_count = State#state.messages_count + 1
@@ -166,17 +166,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-create_message(MessagePrototype) ->
-  Timestamp = get_timestamp(),
-  Id = generate_id(Timestamp),
-  MessagePrototype#chat_message{id = Id, timestamp = Timestamp}.
-
 get_timestamp() ->
   {Mega, Sec, Micro} = erlang:now(),
   (Mega * 1000000 + Sec) * 1000000 + Micro.
-
-generate_id(Timestamp) ->
-  random:uniform(Timestamp) bor Timestamp.
 
 %TODO re-implement messages storage - this impl is slow.
 drop_extra_messages(#state{
