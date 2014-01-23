@@ -90,6 +90,7 @@ handle_call({post_message, MessagePrototype}, _From, State) ->
     messages = [NewMessage | State#state.messages],
     messages_count = State#state.messages_count + 1
   },
+  io:format("<~p>[~p]~s: ~s~n", [NewMessage#chat_message.id, NewMessage#chat_message.timestamp, NewMessage#chat_message.author, NewMessage#chat_message.text]),
   {reply, NewMessage, drop_extra_messages(NewState)};
 handle_call(get_last_message_id, _From, #state{messages = []} = State) ->
   {reply, 0, State};
