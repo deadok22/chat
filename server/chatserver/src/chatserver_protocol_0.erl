@@ -31,9 +31,7 @@ deserialize(Packet) ->
 
 serialize(Response) ->
   Packet = serialize_internal(Response),
-  <<?VERSION:8, Packet/binary>>;
-serialize(Response) ->
-  throw({"Response is of different protocol version.", Response}).
+  <<?VERSION:8, Packet/binary>>.
 
 serialize_internal({?LOGIN_RESPONSE_OK, MessageId}) ->
   <<?LOGIN_RESPONSE_OK:8, 0:8, MessageId:64>>;
