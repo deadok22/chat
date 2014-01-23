@@ -24,7 +24,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {clients :: set()}).
+-record(state, {clients :: set(), pid_to_client_map :: list({pid(), nonempty_string()})}).
 
 %%%===================================================================
 %%% API
@@ -77,14 +77,10 @@ init([]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_call({register_client, Client}, _From, #state{clients = Clients} = State) ->
-  if
-    sets:is_element(Client, Clients) ->
-      {reply, already_registered, State};
-    true ->
-      io:format("A client logged in: ~s~n", [Client]),
-      {reply, registered, State#state{clients = sets:add_element(Client, Clients)}}
-  end;
+handle_call({register_client, Pid, Client}, _From, State) ->
+  register_client(Client, Pid, State);
+handle_call({unregister_client, Pid}, _From, State) ->
+  unregister_client(Pid, State);
 handle_call(get, _From, #state{clients = Clients} = State) ->
   {reply, sets:to_list(Clients), State};
 handle_call(_Request, _From, State) ->
@@ -101,9 +97,6 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast({unregister_client, Client}, #state{clients = Clients} = State) ->
-  io:format("A client logged out: ~s~n", [Client]),
-  {noreply, State#state{clients = sets:del_element(Client, Clients)}};
 handle_cast(_Request, State) ->
   {noreply, State}.
 
@@ -157,3 +150,32 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+register_client(ClientName, Pid, #state{clients = Clients, pid_to_client_map = PidsToClients} = State) ->
+  ClientIsRegistered = sets:is_element(ClientName, Clients),
+  if
+    ClientIsRegistered ->
+      {reply, already_registered, State};
+    true ->
+      io:format("A client logged in: ~s~n", [ClientName]),
+      {reply, ok,
+        State#state{
+          clients = sets:add_element(ClientName, Clients),
+          pid_to_client_map = [{Pid, ClientName}, PidsToClients]
+        }
+      }
+  end.
+
+unregister_client(Pid, #state{clients = Clients, pid_to_client_map = PidsToClients} = State) ->
+  ClientName = proplists:get_value(Pid, PidsToClients, undefined),
+  case ClientName of
+    undefined ->
+      {reply, ok, State};
+    ClientName ->
+      io:format("A client logged out: ~s~n", [ClientName]),
+      {reply, ok,
+        State#state{
+          clients = sets:del_element(ClientName, Clients),
+          pid_to_client_map = proplists:delete(Pid, PidsToClients)
+        }
+      }
+  end.

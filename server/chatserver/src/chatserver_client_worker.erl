@@ -21,7 +21,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {socket :: gen_tcp:socket()}).
+-include("chatserver_client_worker_state.hrl").
 
 %%%===================================================================
 %%% API
@@ -77,9 +77,8 @@ handle_call(Unexpected, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast(init, #state{socket = Socket} = State) ->
-  set_opts(Socket),
-  {noreply, State};
+handle_cast(init, State) ->
+  set_opts(State);
 handle_cast(Unexpected, State) ->
   {stop, {unexpected_cast, Unexpected}, State}.
 
@@ -142,30 +141,28 @@ code_change(_OldVsn, State, _Extra) ->
 packet_received(Packet, #state{socket = Socket} = State) ->
   case chatserver_protocol:deserialize(Packet) of
     {Command, Module} ->
-      Response = Module:execute_command(Command),
-      case send_response(Socket, Response) of
-        failed -> {stop, send_failed, State};
-        ok -> {noreply, State}
-      end;
+      execute_command(Command, Module, State);
     bad_packet ->
       {stop, bad_packet, State}
   end.
 
-send_response(Socket, Response) ->
-  case chatserver_protocol:serialize(Response) of
-    bad_response -> failed;
-    ResponsePacket ->
-      gen_tcp:send(Socket, ResponsePacket),
-      ok
-  end.
-
-set_opts(Socket) ->
+set_opts(#state{socket = Socket} = State) ->
   Opts = [
     {active, true},
     {packet, 4}
   ],
   case inet:setopts(Socket, Opts) of
     {error, What} ->
-      throw({"inet:setopts failed", What});
-    ok -> ok
+      {stop, {"inet:setopts failed", What}, State};
+    ok ->
+      {noreply, State}
+  end.
+
+execute_command(Command, Module, #state{socket = Socket} = State) ->
+  case Module:execute_command(self(), Command, State) of
+    {ok, Response, NewState} ->
+      gen_tcp:send(Socket, chatserver_protocol:serialize(Response)),
+      {noreply, NewState};
+    Error ->
+      {stop, Error, State}
   end.
