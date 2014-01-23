@@ -100,7 +100,7 @@ handle_cast(Unexpected, State) ->
 handle_info({tcp, _Socket, Packet}, State) ->
   packet_received(Packet, State);
 handle_info({tcp_closed, _Socket}, State) ->
-  {stop, tcp_closed, State};
+  {stop, normal, State};
 handle_info(Unexpected, State) ->
   {stop, {unexpected_info, Unexpected}, State}.
 
@@ -146,7 +146,8 @@ packet_received(Packet, State) ->
     {Command, Module} ->
       execute_command(Command, Module, State);
     bad_packet ->
-      {stop, bad_packet, State}
+      io:format("Unsupported message received from ~p: ~p~n", [State#state.socket, Packet]),
+      {stop, normal, State}
   end.
 
 set_opts(#state{socket = Socket} = State) ->
@@ -168,5 +169,6 @@ execute_command(Command, Module, #state{socket = Socket} = State) ->
       gen_tcp:send(Socket, chatserver_protocol:serialize(Response)),
       {noreply, NewState};
     Error ->
-      {stop, Error, State}
+      io:format("Command execution failed due to error: ~p~n", [Error]),
+      {stop, normal, State}
   end.
