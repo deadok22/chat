@@ -1,126 +1,58 @@
 package ru.spbau.sluzhaev.chat.client.network;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 
 public class ChatClient implements Runnable {
-    private final int PROTOCOL_VERSION = 1;
+    static final int PROTOCOL_VERSION = 1;
     private Socket socket;
-    private LoginResponseListener loginResponseListener;
-    private LoginErrorListener loginErrorListener;
-    private MessageListListener messageListListener;
-    private UserListListener userListListener;
+    private ConnectionThread connectionThread;
 
     public ChatClient(InetAddress address, int port) throws IOException {
         socket = new Socket(address, port);
     }
 
-    public void setLoginResponseListener(LoginResponseListener loginResponseListener) {
-        this.loginResponseListener = loginResponseListener;
+    public void login(String name) {
+        Package p = new Package(Code.LOGIN, (byte)0, BytesUtils.textToBytes(name));
+        connectionThread.sendPackage(p);
     }
 
-    public void setLoginErrorListener(LoginErrorListener loginErrorListener) {
-        this.loginErrorListener = loginErrorListener;
+    public void fetch(long messageId) {
+        Package p = new Package(Code.FETCH, (byte)0, BytesUtils.longToBytes(messageId));
+        connectionThread.sendPackage(p);
     }
 
-    public void setMessageListListener(MessageListListener messageListListener) {
-        this.messageListListener = messageListListener;
+    public void send(String text) {
+        Package p = new Package(Code.SEND, (byte)0, BytesUtils.textToBytes(text));
+        connectionThread.sendPackage(p);
     }
 
-    public void setUserListListener(UserListListener userListListener) {
-        this.userListListener = userListListener;
+    public void userList() {
+        Package p = new Package(Code.USER_LIST, (byte)0, new byte[0]);
+        connectionThread.sendPackage(p);
+    }
+
+    public void logout() {
+        Package p = new Package(Code.LOGOUT, (byte)0, new byte[0]);
+        connectionThread.sendPackage(p);
     }
 
     @Override
     public void run() {
-        try (BufferedInputStream inputStream = new BufferedInputStream(socket.getInputStream())) {
-            while (true) {
-                int length = BytesUtils.readInt(inputStream);
-                byte currentProtocolVersion = (byte) inputStream.read();
-                if (currentProtocolVersion != PROTOCOL_VERSION) {
-                    throw new UnsupportedOperationException();
-                }
-                Code code = Code.fromInt(inputStream.read());
-                byte flags = (byte) inputStream.read();
-                length -= 3;
-                switch (code) {
-                    case LOGIN_RESPONSE:
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (loginResponseListener != null) {
-                                    loginResponseListener.event();
-                                }
-                            }
-                        }).start();
-                        break;
-                    case LOGIN_ERROR:
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (loginErrorListener != null) {
-                                    loginErrorListener.event();
-                                }
-                            }
-                        }).start();
-                        break;
-                    case MESSAGE_LIST:
-                        final Message[] messages = Message.readMessageArray(inputStream);
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (messageListListener != null) {
-                                    messageListListener.event(messages);
-                                }
-                            }
-                        }).start();
-                        break;
-                    case USER_LIST_RESPONSE:
-                        // ToDo
-                        /*final String[] users = new String[0];
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (userListListener != null) {
-                                    userListListener.event(users);
-                                }
-                            }
-                        });*/
-                        break;
-                    default:
-                        throw new UnsupportedOperationException();
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        connectionThread = new ConnectionThread(socket);
+        new Thread(connectionThread).start();
     }
 
-    enum Code {
-        LOGIN(0), FETCH(1), SEND(2), USER_LIST(3), LOGOUT(4), LOGIN_RESPONSE(5),
-        LOGIN_ERROR(6), MESSAGE_LIST(7), USER_LIST_RESPONSE(8);
+    public void setLoginResponseListener(LoginResponseListener loginResponseListener) {
+        connectionThread.setLoginResponseListener(loginResponseListener);
+    }
 
-        private final byte value;
+    public void setLoginErrorListener(LoginErrorListener loginErrorListener) {
+        connectionThread.setLoginErrorListener(loginErrorListener);
+    }
 
-        private Code(int value) {
-            this.value = (byte) value;
-        }
-
-        static Code fromInt(int value) {
-            for (Code code : Code.values()) {
-                if (code.value == value) {
-                    return code;
-                }
-            }
-
-            return null;
-        }
-
-
-        public byte getValue() {
-            return value;
-        }
+    public void setMessageListListener(MessageListListener messageListListener) {
+        connectionThread.setMessageListListener(messageListListener);
     }
 }

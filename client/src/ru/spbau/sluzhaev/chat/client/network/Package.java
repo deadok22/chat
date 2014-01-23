@@ -6,6 +6,12 @@ public class Package {
     private byte flags;
     private byte[] data;
 
+    public Package(Code code, byte flags, byte[] data) {
+        this.code = code;
+        this.flags = flags;
+        this.data = data;
+    }
+
     public Package(byte[] bytes) {
         if (bytes.length < 5) {
             throw new UnsupportedOperationException();
@@ -45,31 +51,5 @@ public class Package {
             result[7 + i] = data[i];
         }
         return result;
-    }
-
-    enum Code {
-        LOGIN(0), FETCH(1), SEND(2), USER_LIST(3), LOGOUT(4), LOGIN_RESPONSE(5),
-        LOGIN_ERROR(6), MESSAGE_LIST(7), USER_LIST_RESPONSE(8);
-
-        private final byte value;
-
-        private Code(int value) {
-            this.value = (byte) value;
-        }
-
-        static Code fromInt(int value) {
-            for (Code code : Code.values()) {
-                if (code.value == value) {
-                    return code;
-                }
-            }
-
-            return null;
-        }
-
-
-        public byte getValue() {
-            return value;
-        }
     }
 }

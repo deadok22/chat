@@ -2,6 +2,7 @@ package ru.spbau.sluzhaev.chat.client.network;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 public abstract class BytesUtils {
     public static int bytesToInt(byte[] bytes) {
@@ -37,5 +38,49 @@ public abstract class BytesUtils {
         byte[] buffer = new byte[length];
         inputStream.read(buffer);
         return new String(buffer);
+    }
+
+    public static byte[] intToBytes(int value) {
+        byte[] bytes = new byte[4];
+        for (int i = 3; i >= 0; --i) {
+            bytes[i] = (byte) ((value) & 0xFF);
+            value >>= 8;
+        }
+        return bytes;
+    }
+
+    public static byte[] longToBytes(long value) {
+        byte[] bytes = new byte[8];
+        for (int i = 7; i >= 0; --i) {
+            bytes[i] = (byte) ((value) & 0xFF);
+            value >>= 8;
+        }
+        return bytes;
+    }
+
+    public static byte[] textToBytes(String text) {
+        byte[] bytes = new byte[4 + text.length()];
+        byte[] length = intToBytes(text.length());
+        byte[] data = text.getBytes();
+        for (int i = 0; i < 4; ++i) {
+            bytes[i] = length[i];
+        }
+        for (int i = 0; i < data.length; ++i) {
+            bytes[4 + i] = data[i];
+        }
+        return bytes;
+    }
+
+    public static void writeInt(OutputStream outputStream, int value) throws IOException {
+        outputStream.write(intToBytes(value));
+    }
+
+    public static void writeLong(OutputStream outputStream, long value) throws IOException {
+        outputStream.write(longToBytes(value));
+    }
+
+    public static void writeText(OutputStream outputStream, String text) throws IOException {
+        writeInt(outputStream, text.length());
+        outputStream.write(text.getBytes());
     }
 }
