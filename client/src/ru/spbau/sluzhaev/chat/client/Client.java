@@ -34,7 +34,8 @@ public class Client implements Runnable {
                     if (message.getAuthor().equals(name)) {
                         continue;
                     }
-                    System.out.println(message.getTimestamp() + ": " + message.getText());
+                    Date date = new Date(message.getTimestamp());
+                    System.out.println("[" + date.toString() + "] " + message.getAuthor() + ": " + message.getText());
                     messages.add(message);
                 }
             }
@@ -52,7 +53,6 @@ public class Client implements Runnable {
             }
         }
     }
-
 
     public class Fetcher implements Runnable {
         @Override

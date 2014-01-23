@@ -39,12 +39,13 @@ public class ConnectionThread implements Runnable {
     public void run() {
         final int timeout = 1000;
         try (BufferedInputStream inputStream = new BufferedInputStream(socket.getInputStream())) {
+            log("Connected...");
             while (true) {
                 Task task = tasksQueue.poll(timeout, TimeUnit.MILLISECONDS);
                 if (task != null) {
-                    System.out.println("Sending package...");
+                    log("Sending package...");
                     socket.getOutputStream().write(task.getPackage().getBytes());
-                    System.out.println("Receiving package...");
+                    log("Receiving package...");
                     process(inputStream);
                 }
             }
@@ -125,5 +126,7 @@ public class ConnectionThread implements Runnable {
 
     }
 
-
+    public void log(String text) {
+        System.out.println("[ConnectionThread]: " + text);
+    }
 }

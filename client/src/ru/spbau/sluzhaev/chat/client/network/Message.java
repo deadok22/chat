@@ -10,9 +10,7 @@ public class Message {
     private String text;
 
     public static Message[] readMessageArray(InputStream inputStream) throws IOException {
-        byte buffer[] = new byte[4];
-        inputStream.read(buffer);
-        int length = (buffer[0] << 24) + (buffer[1] << 16) + (buffer[2] << 8) + buffer[3];
+        int length = BytesUtils.readInt(inputStream);
         Message[] result = new Message[length];
         for (int i = 0; i < length; ++i) {
             result[i] = Message.readMessage(inputStream);
