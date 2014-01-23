@@ -12,7 +12,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, open_server_socket/0]).
+-export([open_server_socket/0, start_link/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -30,14 +30,14 @@
 %%% API
 %%%===================================================================
 
-start_link(ServerSocket) ->
-  gen_server:start_link({local, ?SERVER}, ?MODULE, [ServerSocket], []).
+start_link(Id, ServerSocket) ->
+  gen_server:start_link({local, list_to_atom(atom_to_list(?SERVER) ++ integer_to_list(Id))}, ?MODULE, [ServerSocket], []).
 
 open_server_socket() ->
   case application:get_env(port) of
     undefined ->
       throw("Server port is not specified");
-    Port ->
+    {ok, Port} ->
       case gen_tcp:listen(Port, server_socket_opts()) of
         {ok, Socket} -> Socket;
         Error -> throw({"gen_tcp:listen failed", Error})
@@ -163,10 +163,12 @@ server_socket_opts() ->
   ].
 
 accept_client(ClientSocket) ->
-  Pid = gen_server:start(chatserver_client_worker, [ClientSocket], []),
+  {ok, Pid} = gen_server:start(chatserver_client_worker, [ClientSocket], []),
   case gen_tcp:controlling_process(ClientSocket, Pid) of
     {error, Reason} ->
       throw({"gen_tcp:controlling_process failed", Reason});
-    ok -> ok
+    ok ->
+      gen_server:cast(Pid, init),
+      ok
   end,
   ok.

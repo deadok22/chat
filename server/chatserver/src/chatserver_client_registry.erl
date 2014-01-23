@@ -60,7 +60,7 @@ start_link() ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([]) ->
-  {ok, #state{}}.
+  {ok, #state{clients = sets:new(), pid_to_client_map = []}}.
 
 %%--------------------------------------------------------------------
 %% @private

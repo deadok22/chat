@@ -13,4 +13,7 @@
 -export([main/0]).
 
 main() ->
-  application:start(chatserver).
+  case application:start(chatserver) of
+    ok -> timer:sleep(1000000);
+    {error, Reason} -> exit(Reason)
+  end.

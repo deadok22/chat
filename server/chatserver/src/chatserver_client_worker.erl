@@ -46,6 +46,7 @@
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([Socket]) ->
+  io:format("Client connected: ~p~n", [Socket]),
   {ok, #state{socket = Socket}}.
 
 %%--------------------------------------------------------------------
@@ -117,6 +118,7 @@ handle_info(Unexpected, State) ->
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
     State :: #state{}) -> term()).
 terminate(_Reason, #state{socket = Socket}) ->
+  io:format("Client disconnected: ~p~n", [Socket]),
   gen_server:call(chatserver_client_registry, {unregister_client, self()}),
   gen_tcp:close(Socket),
   ok.
@@ -139,6 +141,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 packet_received(Packet, State) ->
+  io:format("Got a packet from ~p~n", [State#state.socket]),
   case chatserver_protocol:deserialize(Packet) of
     {Command, Module} ->
       execute_command(Command, Module, State);
@@ -149,7 +152,8 @@ packet_received(Packet, State) ->
 set_opts(#state{socket = Socket} = State) ->
   Opts = [
     {active, true},
-    {packet, 4}
+    {packet, 4},
+    binary
   ],
   case inet:setopts(Socket, Opts) of
     {error, What} ->

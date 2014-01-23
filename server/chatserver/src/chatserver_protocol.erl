@@ -21,10 +21,10 @@ deserialize(Packet) ->
         unknown_version -> bad_packet;
         {SerializerModule, CommandExecutorModule} ->
           case SerializerModule:deserialize(VersionStrippedPacket) of
-            {ok, Command} ->
-              {Command, CommandExecutorModule};
             bad_packet ->
-              bad_packet
+              bad_packet;
+            Command ->
+              {Command, CommandExecutorModule}
           end
       end;
     bad_packet ->

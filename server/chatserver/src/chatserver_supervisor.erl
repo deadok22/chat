@@ -75,8 +75,8 @@ acceptors_specs() ->
   Restart = permanent,
   Shutdown = 2000,
   Type = worker,
-  [{"acceptor_" ++ integer_to_list(Id),
-    {chatserver_acceptor, start_link, [Socket]},
+  [{list_to_atom("acceptor_" ++ integer_to_list(Id)),
+    {chatserver_acceptor, start_link, [Id, Socket]},
     Restart,
     Shutdown,
     Type,
@@ -87,7 +87,8 @@ acceptors_count() ->
   case application:get_env(acceptors_count) of
     undefined ->
       throw("Acceptors count is not specified");
-    AcceptorsCount -> AcceptorsCount
+    {ok, AcceptorsCount} ->
+      AcceptorsCount
   end.
 
 client_registry_spec() ->
@@ -116,7 +117,7 @@ message_history_size() ->
   case application:get_env(message_history_size) of
     undefined ->
       throw("Message history size is not specified");
-    HistorySize ->
+    {ok, HistorySize} ->
       HistorySize
   end.
 

@@ -17,6 +17,7 @@
   {mod, {chatserver, []}},
   {env, [
     {port, 55896},
-    {acceptors_count, 10}
+    {acceptors_count, 10},
+    {message_history_size, 100}
   ]}
 ]}.

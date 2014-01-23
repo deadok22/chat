@@ -15,7 +15,7 @@
 -include("chatserver_protocol_0.hrl").
 -include("chat_message.hrl").
 
-deserialize(<<?LOGIN:8, _:8, UserName/binary>>) ->
+deserialize(<<?LOGIN:8, _:8, NameLength:32, UserName:NameLength/binary>>) ->
   {login, binary_to_list(UserName)};
 deserialize(<<?FETCH:8, _:8, MessageId:64>>) ->
   {fetch, MessageId};
@@ -25,13 +25,11 @@ deserialize(<<?USERLIST:8, _:8>>) ->
   userlist;
 deserialize(<<?LOGOUT:8, _:8>>) ->
   logout;
-deserialize(_Packet) ->
+deserialize(Packet) ->
+  io:format("Ill formed packet passed to ~p: ~p~n", [?MODULE, Packet]),
   bad_packet.
 
-
-%% -define(SEND_MESSAGE_RESPONSE, 10).
-
-serialize({?VERSION, Response}) ->
+serialize(Response) ->
   Packet = serialize_internal(Response),
   <<?VERSION:8, Packet/binary>>;
 serialize(Response) ->
@@ -55,5 +53,5 @@ serialize_internal(Response) ->
 
 serialize_text(Text) ->
   TextBinary = list_to_binary(Text),
-  TextBinaryLength = length(TextBinary),
+  TextBinaryLength = byte_size(TextBinary),
   <<TextBinaryLength:32, TextBinary/binary>>.
