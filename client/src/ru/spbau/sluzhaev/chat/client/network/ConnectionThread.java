@@ -54,6 +54,7 @@ public class ConnectionThread implements Runnable {
             while (true) {
 //                log("Waiting for task");
                 Task task = tasksQueue.poll(timeout, TimeUnit.MILLISECONDS);
+//                System.out.println(tasksQueue.size());
                 if (task != null) {
                     log("Sending package...");
                     socket.getOutputStream().write(task.getPackage().getBytes());
@@ -72,14 +73,14 @@ public class ConnectionThread implements Runnable {
     private void process(InputStream inputStream) throws IOException {
         int length = BytesUtils.readInt(inputStream);
         log("Length = " + length);
-        byte currentProtocolVersion = (byte) inputStream.read();
+        byte currentProtocolVersion = BytesUtils.readBytes(inputStream, 1)[0];
         if (currentProtocolVersion != Package.PROTOCOL_VERSION) {
             throw new UnsupportedOperationException();
         }
-        int c = inputStream.read();
+        int c = BytesUtils.readBytes(inputStream, 1)[0];
         log("CODE = " + c);
         Code code = Code.fromInt(c);
-        byte flags = (byte) inputStream.read();
+        byte flags = BytesUtils.readBytes(inputStream, 1)[0];
         log("FLAGS = " + flags);
         int total_bytes = 3;
         switch (code) {

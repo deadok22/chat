@@ -22,21 +22,26 @@ public abstract class BytesUtils {
     }
 
     public static int readInt(InputStream inputStream) throws IOException {
-        byte[] buffer = new byte[4];
-        inputStream.read(buffer);
+        byte[] buffer = readBytes(inputStream, 4);
         return bytesToInt(buffer);
     }
 
     public static long readLong(InputStream inputStream) throws IOException {
-        byte[] buffer = new byte[8];
-        inputStream.read(buffer);
+        byte[] buffer = readBytes(inputStream, 8);
         return bytesToLong(buffer);
     }
 
     public static String readText(InputStream inputStream) throws IOException {
         int length = readInt(inputStream);
-        byte[] buffer = new byte[length];
-        inputStream.read(buffer);
+        byte[] buffer = null;
+        try {
+//            System.out.println(length);
+            buffer = readBytes(inputStream, length);
+        } catch (OutOfMemoryError ex) {
+            System.out.println("Out of memory: " + length);
+        } catch (NegativeArraySizeException ex) {
+            System.out.println("Negative array size: " + length);
+        }
         String result = new String(buffer);
         return result;
     }
@@ -93,5 +98,18 @@ public abstract class BytesUtils {
             result[i] = readText(inputStream);
         }
         return result;
+    }
+
+    public static byte[] readBytes(InputStream inputStream, int length) throws IOException {
+        byte[] bytes = new byte[length];
+//        System.out.println("For reading " + length);
+        for (int i = 0; i < length; ++i) {
+            int current = inputStream.read();
+//            System.out.println(current);
+            assert (current != -1);
+            bytes[i] = (byte) current;
+        }
+//        System.out.println("Reading " + length);
+        return bytes;
     }
 }

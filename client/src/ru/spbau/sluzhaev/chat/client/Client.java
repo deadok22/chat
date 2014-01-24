@@ -82,6 +82,12 @@ public class Client implements Runnable {
             chatClient.login(name);
             while (true) {
                 String text = scanner.nextLine();
+                if (text == null) {
+                    return;
+                }
+                if (text.isEmpty()) {
+                    continue;
+                }
                 if ("\\logout".equals(text)) {
                     chatClient.logout();
                     break;

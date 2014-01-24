@@ -53,28 +53,49 @@ public class ClientBot implements Runnable {
                 for (Message message : list) {
                     if (!message.getAuthor().equals(name)) {
                         Date date = new Date(message.getTimestamp() / 1000l);
-                        System.out.println("[" + date.toString() + "] " + message.getAuthor() + ": " + message.getText());
+//                        System.out.println("[" + date.toString() + "] " + message.getAuthor() + ": " + message.getText());
                     }
                     lastMessageId.set(message.getId());
                 }
                 try {
-                    Thread.sleep(1000l);
+                    Thread.sleep(500l);
                     chatClient.fetch(lastMessageId.get());
                 } catch (InterruptedException e) {
-                    return;
                 }
             }
         });
+        chatClient.setUserListListener(new UserListListener() {
+            @Override
+            public void event(String[] list) {
+//                System.out.println("Users online:");
+//                for (String user : list) {
+//                    System.out.println(user);
+//                }
+                try {
+                    Thread.sleep(10000l);
+                    chatClient.userList();
+                } catch (InterruptedException e) {
+                }
+            }
+        });
+//        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                System.out.println("DISCONNECT...");
+//            }
+//        }));
+        chatClient.userList();
         while (true) {
             try {
-                Thread.sleep(1000l);
+                Thread.sleep(5000l);
                 String text = randomString(20);
                 chatClient.send(text);
-                System.out.println("[" + (new Date()).toString() + "] " + name + ": " + text);
+//                System.out.println("[" + (new Date()).toString() + "] " + name + ": " + text);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+
     }
 
     public static void usage() {
