@@ -27,7 +27,8 @@
 -record(state, {
   messages = [] :: list(),
   message_history_max :: non_neg_integer(),
-  messages_count = 1 :: non_neg_integer()
+  messages_count = 0 :: non_neg_integer(),
+  new_message_id = 1:: non_neg_integer()
 }).
 
 -include("chat_message.hrl").
@@ -85,12 +86,13 @@ init([MessageHistorySize]) ->
   {stop, Reason :: term(), NewState :: #state{}}).
 
 handle_call({post_message, MessagePrototype}, _From, State) ->
-  NewMessage = MessagePrototype#chat_message{id = State#state.messages_count, timestamp = chatserver_utils:get_timestamp()},
+  NewMessage = MessagePrototype#chat_message{id = State#state.new_message_id, timestamp = chatserver_utils:get_timestamp()},
   NewState = State#state{
     messages = [NewMessage | State#state.messages],
-    messages_count = State#state.messages_count + 1
+    messages_count = State#state.messages_count + 1,
+    new_message_id = State#state.new_message_id + 1
   },
-  io:format("<~p>[~p]~s: ~s~n", [NewMessage#chat_message.id, NewMessage#chat_message.timestamp, NewMessage#chat_message.author, NewMessage#chat_message.text]),
+%%   io:format("<~p>[~p]~s: ~s~n", [NewMessage#chat_message.id, NewMessage#chat_message.timestamp, NewMessage#chat_message.author, NewMessage#chat_message.text]),
   {reply, NewMessage, drop_extra_messages(NewState)};
 handle_call(get_last_message_id, _From, #state{messages = []} = State) ->
   {reply, 0, State};

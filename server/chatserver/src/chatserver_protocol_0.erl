@@ -45,7 +45,7 @@ serialize_internal({?MESSAGES_LIST, Messages}) ->
 serialize_internal({?USER_LIST_RESPONSE, UserList}) ->
   <<?USER_LIST_RESPONSE:8, 0:8, (length(UserList)):32, <<<<(serialize_text(User))/binary>> || User <- UserList>>/binary>>;
 serialize_internal({?SEND_MESSAGE_RESPONSE, MessageId}) ->
-  <<?SEND_MESSAGE_RESPONSE, MessageId:64>>;
+  <<?SEND_MESSAGE_RESPONSE, 0:8, MessageId:64>>;
 serialize_internal(?LOGOUT_RESPONSE) ->
   <<?LOGOUT_RESPONSE:8, 0:8>>;
 serialize_internal(Response) ->
@@ -54,4 +54,8 @@ serialize_internal(Response) ->
 serialize_text(Text) ->
   TextBinary = list_to_binary(Text),
   TextBinaryLength = byte_size(TextBinary),
+  if
+    TextBinaryLength < 0 -> io:format("WTF!?!?!?!?!?!!?!?");
+    true -> ok
+  end,
   <<TextBinaryLength:32, TextBinary/binary>>.
