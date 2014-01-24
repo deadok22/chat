@@ -4,9 +4,9 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created : 24. Jan 2014 7:48 PM
+%%% Created : 24. Jan 2014 8:32 PM
 %%%-------------------------------------------------------------------
--module(chatserver_statistics).
+-module(chatserver_statistics_reporter).
 -author("deadok22").
 
 -behaviour(gen_server).
@@ -26,7 +26,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {commands_stats :: [#command_stats{}]}).
+-record(state, {delay :: pos_integer()}).
 
 %%%===================================================================
 %%% API
@@ -62,7 +62,13 @@ start_link() ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([]) ->
-  {ok, #state{commands_stats = []}}.
+  case application:get_env(statistics_report_delay) of
+    {ok, Delay} ->
+      gen_server:cast(?SERVER, report),
+      {ok, #state{delay = Delay}};
+    undefined ->
+      {stop, "Statistics report delay is not specified"}
+  end.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -79,8 +85,6 @@ init([]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_call(get, _From, State) ->
-  {reply, State#state.commands_stats, State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
@@ -95,8 +99,12 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast({command, Cmd, ProcessingTime}, State) ->
-  {noreply, update_state(Cmd, ProcessingTime, State)};
+handle_cast(report, State) ->
+  Stats = gen_server:call(chatserver_statistics, get),
+  print_stats(Stats),
+  timer:sleep(State#state.delay),
+  gen_server:cast(?SERVER, report),
+  {noreply, State};
 handle_cast(_Request, State) ->
   {noreply, State}.
 
@@ -150,19 +158,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+print_stats(Stats) ->
+  SortedStats = lists:keysort(2, Stats),
+  StatStrings = [table_row(Cmd, TimeAvg, Count) ||
+    #command_stats{command = Cmd, time_avg = TimeAvg, count = Count} <- SortedStats],
+  io:format("~s~n~s~n~s~n~n", ["Metrics per command:", table_header(), StatStrings]).
 
-update_state(Cmd, ProcessingTime, #state{commands_stats = Stats} = State) ->
-  State#state{commands_stats = update_stats(Cmd, ProcessingTime, Stats)}.
+table_header() ->
+  io_lib:format("~15s~15s~15s~n", ["CmdId", "TimeAvg(uS)", "Count"]).
 
-update_stats(Cmd, ProcessingTime, Stats) ->
-  CommandMetrics = case lists:keyfind(Cmd, 2, Stats) of
-                     false ->
-                       #command_stats{command = Cmd, time_avg = float(ProcessingTime), count = 1};
-                     #command_stats{time_avg = TimeAvg, count = Count} ->
-                       #command_stats{
-                         command = Cmd,
-                         time_avg = (ProcessingTime + Count * TimeAvg) / (Count + 1),
-                         count = Count + 1
-                       }
-                   end,
-  lists:keystore(Cmd, 2, Stats, CommandMetrics).
+table_row(Cmd, Time, Count) ->
+  io_lib:format("~15w~15.3f~15w~n", [Cmd, Time, Count]).

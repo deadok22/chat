@@ -62,6 +62,7 @@ init([]) ->
   SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
   Children = [
     statistics_spec(),
+    statistics_reporter_spec(),
     messages_server_spec(),
     client_registry_spec() |
     acceptors_specs()
@@ -132,3 +133,14 @@ statistics_spec() ->
     Shutdown,
     Type,
     [chatserver_statistics]}.
+
+statistics_reporter_spec() ->
+  Restart = permanent,
+  Shutdown = 2000,
+  Type = worker,
+  {"statistics_reporter",
+    {chatserver_statistics_reporter, start_link, []},
+    Restart,
+    Shutdown,
+    Type,
+    [chatserver_statistics_reporter]}.
