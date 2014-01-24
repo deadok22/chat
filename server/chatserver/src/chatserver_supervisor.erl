@@ -61,6 +61,7 @@ init([]) ->
   MaxSecondsBetweenRestarts = 3600,
   SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
   Children = [
+    statistics_spec(),
     messages_server_spec(),
     client_registry_spec() |
     acceptors_specs()
@@ -121,3 +122,13 @@ message_history_size() ->
       HistorySize
   end.
 
+statistics_spec() ->
+  Restart = permanent,
+  Shutdown = 2000,
+  Type = worker,
+  {"statistics",
+    {chatserver_statistics, start_link, []},
+    Restart,
+    Shutdown,
+    Type,
+    [chatserver_statistics]}.

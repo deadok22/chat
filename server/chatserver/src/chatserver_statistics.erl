@@ -1,18 +1,18 @@
 %%%-------------------------------------------------------------------
 %%% @author deadok22
-%%% @copyright (C) 2013, <COMPANY>
+%%% @copyright (C) 2014, <COMPANY>
 %%% @doc
 %%%
 %%% @end
-%%% Created : 19. Nov 2013 6:59 PM
+%%% Created : 24. Jan 2014 7:48 PM
 %%%-------------------------------------------------------------------
--module(chatserver_messages).
+-module(chatserver_statistics).
 -author("deadok22").
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -22,15 +22,11 @@
   terminate/2,
   code_change/3]).
 
+-include("chatserver_statistics.hrl").
+
 -define(SERVER, ?MODULE).
 
--record(state, {
-  messages = [] :: list(),
-  message_history_max :: non_neg_integer(),
-  messages_count = 1 :: non_neg_integer()
-}).
-
--include("chat_message.hrl").
+-record(state, {commands_stats :: [#command_stats{}]}).
 
 %%%===================================================================
 %%% API
@@ -42,10 +38,10 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(start_link(MessageHistorySize :: non_neg_integer()) ->
+-spec(start_link() ->
   {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link(MessageHistorySize) ->
-  gen_server:start_link({local, ?SERVER}, ?MODULE, [MessageHistorySize], []).
+start_link() ->
+  gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -65,8 +61,8 @@ start_link(MessageHistorySize) ->
 -spec(init(Args :: term()) ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
-init([MessageHistorySize]) ->
-  {ok, #state{message_history_max = MessageHistorySize}}.
+init([]) ->
+  {ok, #state{commands_stats = []}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -83,22 +79,8 @@ init([MessageHistorySize]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
-
-handle_call({post_message, MessagePrototype}, _From, State) ->
-  NewMessage = MessagePrototype#chat_message{id = State#state.messages_count, timestamp = chatserver_utils:get_timestamp()},
-  NewState = State#state{
-    messages = [NewMessage | State#state.messages],
-    messages_count = State#state.messages_count + 1
-  },
-  io:format("<~p>[~p]~s: ~s~n", [NewMessage#chat_message.id, NewMessage#chat_message.timestamp, NewMessage#chat_message.author, NewMessage#chat_message.text]),
-  {reply, NewMessage, drop_extra_messages(NewState)};
-handle_call(get_last_message_id, _From, #state{messages = []} = State) ->
-  {reply, 0, State};
-handle_call(get_last_message_id, _From, #state{messages = [#chat_message{id = Id} | _]} = State) ->
-  {reply, Id, State};
-handle_call({get_messages, FirstKnownId}, _From, #state{messages = Messages} = State) ->
-  ReversedMessages = lists:takewhile(fun(#chat_message{id = Id}) -> Id /= FirstKnownId end, Messages),
-  {reply, lists:reverse(ReversedMessages), State};
+handle_call(get, _From, State) ->
+  {reply, State#state.commands_stats, State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
@@ -113,6 +95,8 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
+handle_cast({command, Cmd, ProcessingTime}, State) ->
+  {noreply, update_state(Cmd, ProcessingTime, State)};
 handle_cast(_Request, State) ->
   {noreply, State}.
 
@@ -167,16 +151,18 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-%TODO re-implement messages storage - this impl is slow.
-drop_extra_messages(#state{
-    message_history_max = MessagesHistoryMax,
-    messages_count = MessagesCount,
-    messages = Messages
-} = State) ->
-  case MessagesHistoryMax + 1 of
-    MessagesCount ->
-      State#state{
-        messages = lists:sublist(Messages, MessagesHistoryMax),
-        messages_count = MessagesHistoryMax};
-    _ -> State
-  end.
+update_state(Cmd, ProcessingTime, #state{commands_stats = Stats} = State) ->
+  State#state{commands_stats = update_stats(Cmd, ProcessingTime, Stats)}.
+
+update_stats(Cmd, ProcessingTime, Stats) ->
+  CommandMetrics = case lists:keyfind(Cmd, 2, Stats) of
+                     false ->
+                       #command_stats{command = Cmd, time_avg = ProcessingTime, count = 1};
+                     #command_stats{time_avg = TimeAvg, count = Count} ->
+                       #command_stats{
+                         command = Cmd,
+                         time_avg = (ProcessingTime + Count * TimeAvg) / (Count + 1),
+                         count = Count + 1
+                       }
+                   end,
+  lists:keystore(Cmd, 2, Stats, CommandMetrics).

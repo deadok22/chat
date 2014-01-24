@@ -10,7 +10,7 @@
 -author("deadok22").
 
 %% API
--export([execute_command/3]).
+-export([execute_command/3, command_id/1]).
 
 -include("chat_message.hrl").
 
@@ -41,6 +41,12 @@ execute_command(WorkerPid, logout, State) ->
 execute_command(_WorkerPid, Command, _State) ->
   {unknown_command, Command}.
 
+command_id({login, _}) -> login;
+command_id({fetch, _}) -> fetch;
+command_id({send, _}) -> send;
+command_id(userlist) -> userlist;
+command_id(logout) -> logout;
+command_id(_Command) -> unknown.
 
 response(What, State) ->
   {ok, {?VERSION, What}, State}.

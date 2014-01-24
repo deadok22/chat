@@ -141,9 +141,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 packet_received(Packet, State) ->
+  StartTime = chatserver_utils:get_timestamp(),
   case chatserver_protocol:deserialize(Packet) of
     {Command, Module} ->
-      execute_command(Command, Module, State);
+      Result = execute_command(Command, Module, State),
+      EndTime = chatserver_utils:get_timestamp(),
+      gen_server:cast(chatserver_statistics, {command, Module:command_id(Command), EndTime - StartTime}),
+      Result;
     bad_packet ->
       io:format("Unsupported message received from ~p: ~p~n", [State#state.socket, Packet]),
       {stop, normal, State}
