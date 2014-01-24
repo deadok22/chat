@@ -21,3 +21,4 @@
 -define(MESSAGES_LIST, 8).
 -define(USER_LIST_RESPONSE, 9).
 -define(SEND_MESSAGE_RESPONSE, 10).
+-define(LOGOUT_RESPONSE, 11).

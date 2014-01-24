@@ -46,6 +46,8 @@ serialize_internal({?USER_LIST_RESPONSE, UserList}) ->
   <<?USER_LIST_RESPONSE:8, (length(UserList)):32, <<<<(serialize_text(User))/binary>> || User <- UserList>>/binary>>;
 serialize_internal({?SEND_MESSAGE_RESPONSE, MessageId}) ->
   <<?SEND_MESSAGE_RESPONSE, MessageId:64>>;
+serialize_internal(?LOGOUT_RESPONSE) ->
+  <<?LOGOUT_RESPONSE:8, 0:8>>;
 serialize_internal(Response) ->
   error({"Bad response.", Response}).
 
