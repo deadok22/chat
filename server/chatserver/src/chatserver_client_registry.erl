@@ -162,7 +162,7 @@ register_client(ClientName, Pid, #state{clients = Clients, pid_to_client_map = P
     ClientIsRegistered ->
       {reply, already_registered, State};
     true ->
-      io:format("A client logged in: ~s~n", [ClientName]),
+      io:format("~p logged in as `~s`~n", [Pid, ClientName]),
       {reply, ok,
         State#state{
           clients = sets:add_element(ClientName, Clients),
@@ -177,7 +177,7 @@ unregister_client(Pid, #state{clients = Clients, pid_to_client_map = PidsToClien
     undefined ->
       {reply, ok, State};
     ClientName ->
-      io:format("A client logged out: ~s~n", [ClientName]),
+      io:format("~p logged out as ~s~n", [Pid, ClientName]),
       {reply, ok,
         State#state{
           clients = sets:del_element(ClientName, Clients),
