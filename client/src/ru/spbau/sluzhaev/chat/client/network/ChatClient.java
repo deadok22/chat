@@ -54,4 +54,12 @@ public class ChatClient implements Runnable {
     public void setMessageListListener(MessageListListener messageListListener) {
         connectionThread.setMessageListListener(messageListListener);
     }
+
+    public void setUserListListener(UserListListener userListListener) {
+        connectionThread.setUserListListener(userListListener);
+    }
+
+    public void setLogoutResponseListener(LogoutResponseListener logoutResponseListener) {
+        connectionThread.setLogoutResponseListener(logoutResponseListener);
+    }
 }

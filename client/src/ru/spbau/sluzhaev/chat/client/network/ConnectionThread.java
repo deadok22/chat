@@ -38,6 +38,14 @@ public class ConnectionThread implements Runnable {
         this.messageListListener = messageListListener;
     }
 
+    public void setUserListListener(UserListListener userListListener) {
+        this.userListListener = userListListener;
+    }
+
+    public void setLogoutResponseListener(LogoutResponseListener logoutResponseListener) {
+        this.logoutResponseListener = logoutResponseListener;
+    }
+
     @Override
     public void run() {
         final int timeout = 1000;

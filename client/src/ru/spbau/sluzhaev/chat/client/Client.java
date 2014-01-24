@@ -13,18 +13,22 @@ public class Client implements Runnable {
     private int port;
     private ChatClient chatClient;
     private String name;
-//    private List<Message> messages = Collections.synchronizedList(new ArrayList<Message>());
     private AtomicLong lastMessageId = new AtomicLong();
 
-    public Client(InetAddress address, int port) throws IOException {
+    public Client(InetAddress address, int port) {
         this.address = address;
         this.port = port;
-        this.chatClient = new ChatClient(address, port);
-        new Thread(this.chatClient).start();
     }
 
     @Override
     public void run() {
+        try {
+            this.chatClient = new ChatClient(address, port);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+        new Thread(this.chatClient).start();
         System.out.print("login: ");
         Scanner scanner = new Scanner(System.in);
         name = scanner.nextLine();
@@ -55,13 +59,23 @@ public class Client implements Runnable {
                 }
             }
         });
+        chatClient.setUserListListener(new UserListListener() {
+            @Override
+            public void event(String[] list) {
+                System.out.println("Users online:");
+                for (String user : list) {
+                    System.out.println(user);
+                }
+            }
+        });
         new Thread(new Fetcher()).start();
         while (true) {
             String text = scanner.nextLine();
-//            System.out.println("CMD = " + cmd);
             if (text.equals("\\logout")) {
                 chatClient.logout();
                 break;
+            } else if (text.equals("\\userlist")) {
+                chatClient.userList();
             } else {
                 System.out.println("[" + (new Date()).toString() + "] " + name + ": " + text);
                 chatClient.send(text);
