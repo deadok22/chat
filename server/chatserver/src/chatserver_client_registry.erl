@@ -177,7 +177,7 @@ unregister_client(Pid, #state{clients = Clients, pid_to_client_map = PidsToClien
     undefined ->
       {reply, ok, State};
     ClientName ->
-      io:format("~p logged out as ~s~n", [Pid, ClientName]),
+      io:format("~p logged out as `~s`~n", [Pid, ClientName]),
       {reply, ok,
         State#state{
           clients = sets:del_element(ClientName, Clients),
