@@ -4,6 +4,7 @@ import ru.spbau.sluzhaev.chat.client.network.*;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,7 +29,8 @@ public class Client implements Runnable {
             e.printStackTrace();
             return;
         }
-        new Thread(this.chatClient).start();
+        Thread connectionThread = new Thread(this.chatClient);
+        connectionThread.start();
         System.out.print("login: ");
         Scanner scanner = new Scanner(System.in);
         name = scanner.nextLine();
@@ -54,8 +56,13 @@ public class Client implements Runnable {
                         Date date = new Date(message.getTimestamp() / 1000l);
                         System.out.println("[" + date.toString() + "] " + message.getAuthor() + ": " + message.getText());
                     }
-//                    messages.add(message);
                     lastMessageId.set(message.getId());
+                }
+                try {
+                    Thread.sleep(1000l);
+                    fetch();
+                } catch (InterruptedException e) {
+                    return;
                 }
             }
         });
@@ -68,7 +75,7 @@ public class Client implements Runnable {
                 }
             }
         });
-        new Thread(new Fetcher()).start();
+        fetch();
         while (true) {
             String text = scanner.nextLine();
             if (text.equals("\\logout")) {
@@ -81,27 +88,29 @@ public class Client implements Runnable {
                 chatClient.send(text);
             }
         }
+        connectionThread.interrupt();
     }
 
-    public class Fetcher implements Runnable {
-        @Override
-        public void run() {
-            try {
-                while (true) {
-                    /*long lastMessageId = 0;
-                    synchronized (messages) {
-                        if (!messages.isEmpty()) {
-                            lastMessageId = messages.get(messages.size() - 1).getId();
-                            System.out.println("LastMessageId = " +  messages.get(messages.size() - 1).getId());
-                            System.out.println("LastMessageTimestamp = " +  messages.get(messages.size() - 1).getTimestamp());
-                        }
-                    }*/
-                    chatClient.fetch(lastMessageId.get());
-                    Thread.sleep(5000);
-                }
-            } catch (InterruptedException e) {
+    public void fetch() {
+        chatClient.fetch(lastMessageId.get());
+    }
 
-            }
+    public static void usage() {
+        System.err.println("Usage: client <address> <port>");
+    }
+
+    public static void main(String[] args) {
+        if (args.length != 2) {
+            usage();
+            return;
+        }
+        try {
+            InetAddress address = InetAddress.getByName(args[0]);
+            int port = Integer.parseInt(args[1]);
+            Client client = new Client(address, port);
+            new Thread(client).start();
+        } catch (UnknownHostException | NumberFormatException e) {
+            usage();
         }
     }
 }
