@@ -27,7 +27,7 @@
 -record(state, {
   messages = [] :: list(),
   message_history_max :: non_neg_integer(),
-  messages_count = 0 :: non_neg_integer()
+  messages_count = 1 :: non_neg_integer()
 }).
 
 -include("chat_message.hrl").
