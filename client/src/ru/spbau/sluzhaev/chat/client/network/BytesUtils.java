@@ -30,10 +30,6 @@ public abstract class BytesUtils {
     public static long readLong(InputStream inputStream) throws IOException {
         byte[] buffer = new byte[8];
         inputStream.read(buffer);
-//        for (int i = 0; i < 8; ++i) {
-//            System.out.print(buffer[i] + ",");
-//        }
-//        System.out.println();
         return bytesToLong(buffer);
     }
 
@@ -41,7 +37,8 @@ public abstract class BytesUtils {
         int length = readInt(inputStream);
         byte[] buffer = new byte[length];
         inputStream.read(buffer);
-        return new String(buffer);
+        String result = new String(buffer);
+        return result;
     }
 
     public static byte[] intToBytes(int value) {

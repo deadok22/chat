@@ -82,10 +82,10 @@ public class Client implements Runnable {
             chatClient.login(name);
             while (true) {
                 String text = scanner.nextLine();
-                if (text.equals("\\logout")) {
+                if ("\\logout".equals(text)) {
                     chatClient.logout();
                     break;
-                } else if (text.equals("\\userlist")) {
+                } else if ("\\userlist".equals(text)) {
                     chatClient.userList();
                 } else {
                     System.out.println("[" + (new Date()).toString() + "] " + name + ": " + text);

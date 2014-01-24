@@ -10,6 +10,7 @@ public class ChatClient implements Runnable {
 
     public ChatClient(InetAddress address, int port) throws IOException {
         socket = new Socket(address, port);
+        connectionThread = new ConnectionThread(socket);
     }
 
     public void login(String name) {
@@ -39,7 +40,6 @@ public class ChatClient implements Runnable {
 
     @Override
     public void run() {
-        connectionThread = new ConnectionThread(socket);
         new Thread(connectionThread).start();
     }
 

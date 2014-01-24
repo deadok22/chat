@@ -124,7 +124,7 @@ public class ConnectionThread implements Runnable {
                             userListListener.event(users);
                         }
                     }
-                });
+                }).start();
                 break;
             case MESSAGE_RESPONSE:
                 long messageId = BytesUtils.readLong(inputStream);
