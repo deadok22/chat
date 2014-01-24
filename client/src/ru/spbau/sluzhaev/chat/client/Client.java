@@ -4,7 +4,8 @@ import ru.spbau.sluzhaev.chat.client.network.*;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.*;
+import java.util.Date;
+import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Client implements Runnable {
@@ -56,16 +57,14 @@ public class Client implements Runnable {
         });
         new Thread(new Fetcher()).start();
         while (true) {
-            String cmd = scanner.nextLine();
+            String text = scanner.nextLine();
 //            System.out.println("CMD = " + cmd);
-            if (cmd.equals("send")) {
-                String text = scanner.nextLine();
-                System.out.println("Message: " + text);
-                chatClient.send(text);
-            }
-            if (cmd.equals("logout")) {
+            if (text.equals("\\logout")) {
                 chatClient.logout();
                 break;
+            } else {
+                System.out.println("[" + (new Date()).toString() + "] " + name + ": " + text);
+                chatClient.send(text);
             }
         }
     }

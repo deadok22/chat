@@ -14,6 +14,8 @@ public class ConnectionThread implements Runnable {
     private LoginResponseListener loginResponseListener;
     private LoginErrorListener loginErrorListener;
     private MessageListListener messageListListener;
+    private UserListListener userListListener;
+    private LogoutResponseListener logoutResponseListener;
 
     public ConnectionThread(Socket socket) {
         this.socket = socket;
@@ -106,19 +108,28 @@ public class ConnectionThread implements Runnable {
                 }).start();
                 break;
             case USER_LIST_RESPONSE:
-                // ToDo
-                        /*final String[] users = new String[0];
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (userListListener != null) {
-                                    userListListener.event(users);
-                                }
-                            }
-                   });*/
+                final String[] users = BytesUtils.readTextArray(inputStream);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (userListListener != null) {
+                            userListListener.event(users);
+                        }
+                    }
+                });
                 break;
             case MESSAGE_RESPONSE:
                 long messageId = BytesUtils.readLong(inputStream);
+                break;
+            case LOGOUT_RESPONSE:
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (logoutResponseListener != null) {
+                            logoutResponseListener.event();
+                        }
+                    }
+                });
                 break;
             default:
                 throw new UnsupportedOperationException();

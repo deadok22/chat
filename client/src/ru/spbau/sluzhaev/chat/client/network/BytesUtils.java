@@ -87,4 +87,13 @@ public abstract class BytesUtils {
         writeInt(outputStream, text.length());
         outputStream.write(text.getBytes());
     }
+
+    public static String[] readTextArray(InputStream inputStream) throws IOException {
+        int size = readInt(inputStream);
+        String[] result = new String[size];
+        for (int i = 0; i < size; ++i) {
+            result[i] = readText(inputStream);
+        }
+        return result;
+    }
 }
