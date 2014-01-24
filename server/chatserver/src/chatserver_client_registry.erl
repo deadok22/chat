@@ -166,7 +166,7 @@ register_client(ClientName, Pid, #state{clients = Clients, pid_to_client_map = P
       {reply, ok,
         State#state{
           clients = sets:add_element(ClientName, Clients),
-          pid_to_client_map = [{Pid, ClientName}, PidsToClients]
+          pid_to_client_map = [{Pid, ClientName} | PidsToClients]
         }
       }
   end.
