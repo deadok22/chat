@@ -34,7 +34,7 @@ execute_command(WorkerPid, {send, Text}, State) ->
       response({?SEND_MESSAGE_RESPONSE, NewMessage#chat_message.id}, State)
   end;
 execute_command(_WorkerPid, userlist, State) ->
-  {ok, {?USER_LIST_RESPONSE, gen_server:call(chatserver_client_registry, get)}, State};
+  response({?USER_LIST_RESPONSE, gen_server:call(chatserver_client_registry, get)}, State);
 execute_command(WorkerPid, logout, State) ->
   gen_server:call(chatserver_client_registry, {unregister_client, WorkerPid}),
   response(?LOGOUT_RESPONSE, State);
