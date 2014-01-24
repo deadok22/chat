@@ -43,7 +43,7 @@ serialize_internal({?MESSAGES_LIST, Messages}) ->
       #chat_message{id = Id, timestamp = Timestamp, author = Author, text = Text} <- Messages>>,
   <<?MESSAGES_LIST:8, 0:8, (length(Messages)):32, MessagesData/binary>>;
 serialize_internal({?USER_LIST_RESPONSE, UserList}) ->
-  <<?USER_LIST_RESPONSE:8, (length(UserList)):32, <<<<(serialize_text(User))/binary>> || User <- UserList>>/binary>>;
+  <<?USER_LIST_RESPONSE:8, 0:8, (length(UserList)):32, <<<<(serialize_text(User))/binary>> || User <- UserList>>/binary>>;
 serialize_internal({?SEND_MESSAGE_RESPONSE, MessageId}) ->
   <<?SEND_MESSAGE_RESPONSE, MessageId:64>>;
 serialize_internal(?LOGOUT_RESPONSE) ->
