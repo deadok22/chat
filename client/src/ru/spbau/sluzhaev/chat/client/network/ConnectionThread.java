@@ -20,6 +20,7 @@ public class ConnectionThread implements Runnable {
     }
 
     public void sendPackage(Package p) {
+        log("send package");
         tasksQueue.add(new Task(p));
     }
 
@@ -41,6 +42,7 @@ public class ConnectionThread implements Runnable {
         try (BufferedInputStream inputStream = new BufferedInputStream(socket.getInputStream())) {
             log("Connected...");
             while (true) {
+//                log("Waiting for task");
                 Task task = tasksQueue.poll(timeout, TimeUnit.MILLISECONDS);
                 if (task != null) {
                     log("Sending package...");
@@ -52,25 +54,32 @@ public class ConnectionThread implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
+            log("Disconnect");
+            e.printStackTrace();
         }
     }
 
     private void process(InputStream inputStream) throws IOException {
         int length = BytesUtils.readInt(inputStream);
+        log("Length = " + length);
         byte currentProtocolVersion = (byte) inputStream.read();
-        if (currentProtocolVersion != ChatClient.PROTOCOL_VERSION) {
+        if (currentProtocolVersion != Package.PROTOCOL_VERSION) {
             throw new UnsupportedOperationException();
         }
-        Code code = Code.fromInt(inputStream.read());
+        int c = inputStream.read();
+        log("CODE = " + c);
+        Code code = Code.fromInt(c);
         byte flags = (byte) inputStream.read();
-        length -= 3;
+        log("FLAGS = " + flags);
+        int total_bytes = 3;
         switch (code) {
             case LOGIN_RESPONSE:
+                final long lastMessageId = BytesUtils.readLong(inputStream);
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
                         if (loginResponseListener != null) {
-                            loginResponseListener.event();
+                            loginResponseListener.event(lastMessageId);
                         }
                     }
                 }).start();
@@ -108,9 +117,15 @@ public class ConnectionThread implements Runnable {
                             }
                    });*/
                 break;
+            case MESSAGE_RESPONSE:
+                long messageId = BytesUtils.readLong(inputStream);
+                break;
             default:
                 throw new UnsupportedOperationException();
         }
+//        while () {
+//
+//        }
     }
 
     public class Task {
@@ -127,6 +142,6 @@ public class ConnectionThread implements Runnable {
     }
 
     public void log(String text) {
-        System.out.println("[ConnectionThread]: " + text);
+//        System.out.println("[ConnectionThread]: " + text);
     }
 }

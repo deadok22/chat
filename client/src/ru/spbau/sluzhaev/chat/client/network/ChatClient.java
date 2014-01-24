@@ -5,7 +5,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 public class ChatClient implements Runnable {
-    static final int PROTOCOL_VERSION = 1;
     private Socket socket;
     private ConnectionThread connectionThread;
 

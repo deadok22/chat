@@ -1,7 +1,7 @@
 package ru.spbau.sluzhaev.chat.client.network;
 
 public class Package {
-    private final byte PROTOCOL_VERSION = 1;
+    public static final byte PROTOCOL_VERSION = 0;
     private final Code code;
     private byte flags;
     private byte[] data;

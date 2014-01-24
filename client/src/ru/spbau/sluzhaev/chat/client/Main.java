@@ -3,6 +3,7 @@ package ru.spbau.sluzhaev.chat.client;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Date;
 
 public class Main {
     public static void usage() {
@@ -10,6 +11,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
+//        System.out.println((new Date(System.currentTimeMillis()).toString()));
         if (args.length != 2) {
             usage();
             return;
