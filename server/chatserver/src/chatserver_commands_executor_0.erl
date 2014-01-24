@@ -37,7 +37,7 @@ execute_command(_WorkerPid, userlist, State) ->
   {ok, {?USER_LIST_RESPONSE, gen_server:call(chatserver_client_registry, get)}, State};
 execute_command(WorkerPid, logout, State) ->
   gen_server:call(chatserver_client_registry, {unregister_client, WorkerPid}),
-  response(?LOGIN_RESPONSE_OK, State);
+  response(?LOGOUT_RESPONSE, State);
 execute_command(_WorkerPid, Command, _State) ->
   {unknown_command, Command}.
 
