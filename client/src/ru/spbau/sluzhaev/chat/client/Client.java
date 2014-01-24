@@ -31,15 +31,12 @@ public class Client implements Runnable {
         }
         Thread connectionThread = new Thread(this.chatClient);
         connectionThread.start();
-        System.out.print("login: ");
         Scanner scanner = new Scanner(System.in);
-        name = scanner.nextLine();
-        System.out.println("Name = " + name);
-        chatClient.login(name);
         chatClient.setLoginResponseListener(new LoginResponseListener() {
             @Override
             public void event(long lastMessageId) {
                 Client.this.lastMessageId.set(lastMessageId);
+                Client.this.chatClient.fetch(lastMessageId);
             }
         });
         chatClient.setLoginErrorListener(new LoginErrorListener() {
@@ -60,7 +57,7 @@ public class Client implements Runnable {
                 }
                 try {
                     Thread.sleep(1000l);
-                    fetch();
+                    Client.this.chatClient.fetch(lastMessageId.get());
                 } catch (InterruptedException e) {
                     return;
                 }
@@ -75,24 +72,28 @@ public class Client implements Runnable {
                 }
             }
         });
-        fetch();
         while (true) {
-            String text = scanner.nextLine();
-            if (text.equals("\\logout")) {
-                chatClient.logout();
+            System.out.print("login: ");
+            name = scanner.nextLine();
+            if (name.startsWith("\\q")) {
                 break;
-            } else if (text.equals("\\userlist")) {
-                chatClient.userList();
-            } else {
-                System.out.println("[" + (new Date()).toString() + "] " + name + ": " + text);
-                chatClient.send(text);
+            }
+            System.out.println("Name = " + name);
+            chatClient.login(name);
+            while (true) {
+                String text = scanner.nextLine();
+                if (text.equals("\\logout")) {
+                    chatClient.logout();
+                    break;
+                } else if (text.equals("\\userlist")) {
+                    chatClient.userList();
+                } else {
+                    System.out.println("[" + (new Date()).toString() + "] " + name + ": " + text);
+                    chatClient.send(text);
+                }
             }
         }
         connectionThread.interrupt();
-    }
-
-    public void fetch() {
-        chatClient.fetch(lastMessageId.get());
     }
 
     public static void usage() {
