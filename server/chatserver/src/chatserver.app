@@ -18,6 +18,7 @@
   {env, [
     {port, 55896},
     {acceptors_count, 10},
-    {message_history_size, 100}
+    {message_history_size, 100},
+    {statistics_report_delay, 5000}
   ]}
 ]}.

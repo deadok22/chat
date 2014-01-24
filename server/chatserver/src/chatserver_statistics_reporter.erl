@@ -1,18 +1,18 @@
 %%%-------------------------------------------------------------------
 %%% @author deadok22
-%%% @copyright (C) 2013, <COMPANY>
+%%% @copyright (C) 2014, <COMPANY>
 %%% @doc
 %%%
 %%% @end
-%%% Created : 19. Nov 2013 6:59 PM
+%%% Created : 24. Jan 2014 8:32 PM
 %%%-------------------------------------------------------------------
--module(chatserver_messages).
+-module(chatserver_statistics_reporter).
 -author("deadok22").
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -22,15 +22,11 @@
   terminate/2,
   code_change/3]).
 
+-include("chatserver_statistics.hrl").
+
 -define(SERVER, ?MODULE).
 
--record(state, {
-  messages = [] :: list(),
-  message_history_max :: non_neg_integer(),
-  messages_count = 1 :: non_neg_integer()
-}).
-
--include("chat_message.hrl").
+-record(state, {delay :: pos_integer()}).
 
 %%%===================================================================
 %%% API
@@ -42,10 +38,10 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(start_link(MessageHistorySize :: non_neg_integer()) ->
+-spec(start_link() ->
   {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link(MessageHistorySize) ->
-  gen_server:start_link({local, ?SERVER}, ?MODULE, [MessageHistorySize], []).
+start_link() ->
+  gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -65,8 +61,14 @@ start_link(MessageHistorySize) ->
 -spec(init(Args :: term()) ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
-init([MessageHistorySize]) ->
-  {ok, #state{message_history_max = MessageHistorySize}}.
+init([]) ->
+  case application:get_env(statistics_report_delay) of
+    {ok, Delay} ->
+      gen_server:cast(?SERVER, report),
+      {ok, #state{delay = Delay}};
+    undefined ->
+      {stop, "Statistics report delay is not specified"}
+  end.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -83,22 +85,6 @@ init([MessageHistorySize]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
-
-handle_call({post_message, MessagePrototype}, _From, State) ->
-  NewMessage = MessagePrototype#chat_message{id = State#state.messages_count, timestamp = chatserver_utils:get_timestamp()},
-  NewState = State#state{
-    messages = [NewMessage | State#state.messages],
-    messages_count = State#state.messages_count + 1
-  },
-  io:format("<~p>[~p]~s: ~s~n", [NewMessage#chat_message.id, NewMessage#chat_message.timestamp, NewMessage#chat_message.author, NewMessage#chat_message.text]),
-  {reply, NewMessage, drop_extra_messages(NewState)};
-handle_call(get_last_message_id, _From, #state{messages = []} = State) ->
-  {reply, 0, State};
-handle_call(get_last_message_id, _From, #state{messages = [#chat_message{id = Id} | _]} = State) ->
-  {reply, Id, State};
-handle_call({get_messages, FirstKnownId}, _From, #state{messages = Messages} = State) ->
-  ReversedMessages = lists:takewhile(fun(#chat_message{id = Id}) -> Id /= FirstKnownId end, Messages),
-  {reply, lists:reverse(ReversedMessages), State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
@@ -113,6 +99,12 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
+handle_cast(report, State) ->
+  Stats = gen_server:call(chatserver_statistics, get),
+  print_stats(Stats),
+  timer:sleep(State#state.delay),
+  gen_server:cast(?SERVER, report),
+  {noreply, State};
 handle_cast(_Request, State) ->
   {noreply, State}.
 
@@ -166,17 +158,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+print_stats(Stats) ->
+  SortedStats = lists:keysort(2, Stats),
+  StatStrings = [table_row(Cmd, TimeAvg, Count) ||
+    #command_stats{command = Cmd, time_avg = TimeAvg, count = Count} <- SortedStats],
+  io:format("~s~n~s~n~s~n~n", ["Metrics per command:", table_header(), StatStrings]).
 
-%TODO re-implement messages storage - this impl is slow.
-drop_extra_messages(#state{
-    message_history_max = MessagesHistoryMax,
-    messages_count = MessagesCount,
-    messages = Messages
-} = State) ->
-  case MessagesHistoryMax + 1 of
-    MessagesCount ->
-      State#state{
-        messages = lists:sublist(Messages, MessagesHistoryMax),
-        messages_count = MessagesHistoryMax};
-    _ -> State
-  end.
+table_header() ->
+  io_lib:format("~15s~15s~15s~n", ["CmdId", "TimeAvg(uS)", "Count"]).
+
+table_row(Cmd, Time, Count) ->
+  io_lib:format("~15w~15.3f~15w~n", [Cmd, Time, Count]).
