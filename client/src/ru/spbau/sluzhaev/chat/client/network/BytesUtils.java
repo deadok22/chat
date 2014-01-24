@@ -63,14 +63,14 @@ public abstract class BytesUtils {
     }
 
     public static byte[] textToBytes(String text) {
-        byte[] bytes = new byte[4 + text.length()];
-        byte[] length = intToBytes(text.length());
         byte[] data = text.getBytes();
-        for (int i = 0; i < 4; ++i) {
-            bytes[i] = length[i];
+        byte[] size = intToBytes(data.length);
+        byte[] bytes = new byte[size.length + data.length];
+        for (int i = 0; i < size.length; ++i) {
+            bytes[i] = size[i];
         }
         for (int i = 0; i < data.length; ++i) {
-            bytes[4 + i] = data[i];
+            bytes[size.length + i] = data[i];
         }
         return bytes;
     }
@@ -84,8 +84,9 @@ public abstract class BytesUtils {
     }
 
     public static void writeText(OutputStream outputStream, String text) throws IOException {
-        writeInt(outputStream, text.length());
-        outputStream.write(text.getBytes());
+        byte[] bytes = text.getBytes();
+        writeInt(outputStream, bytes.length);
+        outputStream.write(bytes);
     }
 
     public static String[] readTextArray(InputStream inputStream) throws IOException {
