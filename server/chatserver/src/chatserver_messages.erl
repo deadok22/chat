@@ -99,8 +99,7 @@ handle_call(get_last_message_id, _From, #state{messages = []} = State) ->
 handle_call(get_last_message_id, _From, #state{messages = [#chat_message{id = Id} | _]} = State) ->
   {reply, Id, State};
 handle_call({get_messages, FirstKnownId}, _From, #state{messages = Messages} = State) ->
-  ReversedMessages = lists:takewhile(fun(#chat_message{id = Id}) -> Id /= FirstKnownId end, Messages),
-  {reply, lists:reverse(ReversedMessages), State};
+  {reply, new_messages(FirstKnownId, Messages, []), State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
@@ -168,6 +167,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+new_messages(_, [], Acc) -> Acc;
+new_messages(LastKnownId, [#chat_message{id = LastKnownId} | _], Acc) -> Acc;
+new_messages(LastKnownId, [Message | Tail], Acc) -> new_messages(LastKnownId, Tail, [Message | Acc]).
 
 %TODO re-implement messages storage - this impl is slow.
 drop_extra_messages(#state{
