@@ -23,11 +23,13 @@ public class BotNet {
             for (int i = 0; i < bots; ++i) {
                 ClientBotPool client = new ClientBotPool(address, port, SOCKETS_ON_POOL);
                 new Thread(client).start();
+                Thread.sleep(50l);
             }
             ClientBotPool client = new ClientBotPool(address, port, count % SOCKETS_ON_POOL);
             new Thread(client).start();
         } catch (UnknownHostException | NumberFormatException e) {
             usage();
+        } catch (InterruptedException e) {
         }
     }
 }

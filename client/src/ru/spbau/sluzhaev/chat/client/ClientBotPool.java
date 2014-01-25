@@ -39,16 +39,22 @@ public class ClientBotPool implements Runnable {
             chatClients.login(randomString(10), i);
         }
         long counter = 0;
+        Random rnd = new Random();
         while (true) {
             try {
-                Thread.sleep(500l);
+                Thread.sleep(1000l);
                 for (int i = 0; i < count; ++i) {
                     chatClients.fetch(0, i);
                 }
-                if (counter % 10 == 0) {
+                if (rnd.nextInt(60) == 0) {
                     for (int i = 0; i < count; ++i) {
                         String text = randomString(20);
                         chatClients.send(text, i);
+                    }
+                }
+                if (counter % 20 == 0) {
+                    for (int i = 0; i < count; ++i) {
+                        chatClients.userList(i);
                     }
                 }
                 ++counter;
