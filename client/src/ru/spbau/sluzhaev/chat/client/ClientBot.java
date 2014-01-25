@@ -32,8 +32,6 @@ public class ClientBot implements Runnable {
         final String name = randomString(5);
 
         new Thread(chatClient).start();
-        chatClient.login(name);
-
         chatClient.setLoginResponseListener(new LoginResponseListener() {
             @Override
             public void event(long lastMessageId) {
@@ -58,7 +56,7 @@ public class ClientBot implements Runnable {
                     lastMessageId.set(message.getId());
                 }
                 try {
-                    Thread.sleep(500l);
+                    Thread.sleep(5000l);
                     chatClient.fetch(lastMessageId.get());
                 } catch (InterruptedException e) {
                 }
@@ -84,6 +82,7 @@ public class ClientBot implements Runnable {
 //                System.out.println("DISCONNECT...");
 //            }
 //        }));
+        chatClient.login(name);
         chatClient.userList();
         while (true) {
             try {
@@ -95,7 +94,6 @@ public class ClientBot implements Runnable {
                 e.printStackTrace();
             }
         }
-
     }
 
     public static void usage() {
