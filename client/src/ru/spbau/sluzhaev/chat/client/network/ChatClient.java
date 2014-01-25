@@ -2,6 +2,7 @@ package ru.spbau.sluzhaev.chat.client.network;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 
 public class ChatClient implements Runnable {
@@ -9,32 +10,33 @@ public class ChatClient implements Runnable {
     private ConnectionThread connectionThread;
 
     public ChatClient(InetAddress address, int port) throws IOException {
-        socket = new Socket(address, port);
+        socket = new Socket();
+        socket.connect(new InetSocketAddress(address, port), 20000);
         connectionThread = new ConnectionThread(socket);
     }
 
     public void login(String name) {
-        Package p = new Package(Code.LOGIN, (byte)0, BytesUtils.textToBytes(name));
+        Package p = new Package(Code.LOGIN, (byte) 0, BytesUtils.textToBytes(name));
         connectionThread.sendPackage(p);
     }
 
     public void fetch(long messageId) {
-        Package p = new Package(Code.FETCH, (byte)0, BytesUtils.longToBytes(messageId));
+        Package p = new Package(Code.FETCH, (byte) 0, BytesUtils.longToBytes(messageId));
         connectionThread.sendPackage(p);
     }
 
     public void send(String text) {
-        Package p = new Package(Code.SEND, (byte)0, BytesUtils.textToBytes(text));
+        Package p = new Package(Code.SEND, (byte) 0, BytesUtils.textToBytes(text));
         connectionThread.sendPackage(p);
     }
 
     public void userList() {
-        Package p = new Package(Code.USER_LIST, (byte)0, new byte[0]);
+        Package p = new Package(Code.USER_LIST, (byte) 0, new byte[0]);
         connectionThread.sendPackage(p);
     }
 
     public void logout() {
-        Package p = new Package(Code.LOGOUT, (byte)0, new byte[0]);
+        Package p = new Package(Code.LOGOUT, (byte) 0, new byte[0]);
         connectionThread.sendPackage(p);
     }
 

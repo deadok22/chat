@@ -20,14 +20,11 @@ public class BotNet {
 //            Random rnd = new Random();
             for (int i = 0; i < count; ++i) {
                 ClientBot client = new ClientBot(address, port);
-//                Thread.sleep(rnd.nextInt(1000));
+//                Thread.sleep(100l);
                 new Thread(client).start();
             }
         } catch (UnknownHostException | NumberFormatException e) {
             usage();
         }
-//        catch (InterruptedException e) {
-//
-//        }
     }
 }

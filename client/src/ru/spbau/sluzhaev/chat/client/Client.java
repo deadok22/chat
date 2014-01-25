@@ -29,8 +29,6 @@ public class Client implements Runnable {
             e.printStackTrace();
             return;
         }
-        Thread connectionThread = new Thread(this.chatClient);
-        connectionThread.start();
         Scanner scanner = new Scanner(System.in);
         chatClient.setLoginResponseListener(new LoginResponseListener() {
             @Override
@@ -72,6 +70,7 @@ public class Client implements Runnable {
                 }
             }
         });
+        chatClient.run();
         while (true) {
             System.out.print("login: ");
             name = scanner.nextLine();
@@ -99,7 +98,6 @@ public class Client implements Runnable {
                 }
             }
         }
-        connectionThread.interrupt();
     }
 
     public static void usage() {
