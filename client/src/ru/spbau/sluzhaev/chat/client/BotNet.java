@@ -18,11 +18,14 @@ public class BotNet {
             int port = Integer.parseInt(args[1]);
             int count = Integer.parseInt(args[2]);
 //            Random rnd = new Random();
-            for (int i = 0; i < count; ++i) {
-                ClientBot client = new ClientBot(address, port);
-//                Thread.sleep(100l);
+            final int SOCKETS_ON_POOL = 5;
+            int bots = count / SOCKETS_ON_POOL;
+            for (int i = 0; i < bots; ++i) {
+                ClientBotPool client = new ClientBotPool(address, port, SOCKETS_ON_POOL);
                 new Thread(client).start();
             }
+            ClientBotPool client = new ClientBotPool(address, port, count % SOCKETS_ON_POOL);
+            new Thread(client).start();
         } catch (UnknownHostException | NumberFormatException e) {
             usage();
         }
